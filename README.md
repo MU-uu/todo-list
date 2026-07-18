@@ -32,7 +32,9 @@
 
 ## 📦 部署
 
-支持任何静态网站托管服务(CloudStudio、GitHub Pages、Vercel、Netlify 等),直接上传 `index.html` 即可。
+支持任何静态网站托管服务(GitHub Pages、Vercel、Netlify 等),直接上传 `index.html` 即可。
+
+**当前主部署**:**https://mu-todo-list.netlify.app**
 
 ## 📂 项目结构
 

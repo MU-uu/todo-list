@@ -3,7 +3,7 @@
 ## 已自动完成的部分
 - ✅ 仓库已推送到 GitHub:`https://github.com/MU-uu/todo-list`
 - ✅ `netlify.toml` 已配置(发布目录、安全头、缓存策略)
-- ✅ CloudStudio 沙箱已部署(临时)
+- ✅ Netlify 已部署完成(主入口):**https://mu-todo-list.netlify.app**
 
 ## 还需要你做一次(约 2 分钟)
 Netlify 一次性关联 GitHub 仓库,之后 `git push` 就会自动部署。
