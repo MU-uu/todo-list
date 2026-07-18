@@ -1,0 +1,2079 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待办事项</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #dbeafe 0%, #ffffff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 32px;
+            color: #1e3a8a;
+        }
+
+        .container {
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(59, 130, 246, 0.15),
+                        0 8px 20px rgba(59, 130, 246, 0.08);
+            width: 100%;
+            max-width: 1200px;
+            padding: 36px 48px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1e40af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .header h1 .icon-wiggle {
+            display: inline-block;
+            transform-origin: 50% 0%;
+            animation: wiggle 5s ease-in-out infinite;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            15% { transform: rotate(3.5deg); }
+            30% { transform: rotate(-3deg); }
+            45% { transform: rotate(2.2deg); }
+            60% { transform: rotate(-1.5deg); }
+            75% { transform: rotate(0.8deg); }
+            85% { transform: rotate(-0.4deg); }
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0f2fe;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s ease;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        .input-area input:focus {
+            border-color: #60a5fa;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+        }
+
+        .add-btn {
+            padding: 12px 22px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .add-btn::before {
+            content: "+";
+            font-weight: 700;
+            margin-right: 4px;
+            color: inherit;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        .add-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 四象限优先级选择器 */
+        .priority-selector {
+            display: flex;
+            gap: 2px;
+            padding: 0 6px;
+            align-items: center;
+            border-left: 1px solid #e0f2fe;
+            margin-left: 2px;
+        }
+
+        .priority-btn {
+            width: 26px;
+            height: 26px;
+            border: 2px solid transparent;
+            background: transparent;
+            border-radius: 50%;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .priority-btn .priority-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            transition: all 0.15s ease;
+        }
+
+        .priority-btn[data-priority="urgent-important"] .priority-dot { background: #ef4444; }
+        .priority-btn[data-priority="important-not-urgent"] .priority-dot { background: #f59e0b; }
+        .priority-btn[data-priority="urgent-not-important"] .priority-dot { background: #3b82f6; }
+        .priority-btn[data-priority="not-urgent-not-important"] .priority-dot { background: #94a3b8; }
+
+        .priority-btn:hover { transform: scale(1.12); }
+
+        .priority-btn.active {
+            border-color: #1e40af;
+        }
+
+        .priority-btn.active .priority-dot {
+            transform: scale(1.15);
+        }
+
+        .filters {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 12px;
+        }
+
+        .filter-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            color: #3b82f6;
+        }
+
+        .filter-btn.active {
+            background: white;
+            color: #2563eb;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: #f0f9ff;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            gap: 16px;
+        }
+
+        .stats .count {
+            display: flex;
+            gap: 16px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #475569;
+        }
+
+        .stat-item .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 22px;
+            padding: 0 8px;
+            color: white;
+            border-radius: 11px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .stat-item.pending .badge {
+            background: #f59e0b;
+        }
+
+        .stat-item.completed .badge {
+            background: #10b981;
+        }
+
+        .clear-btn {
+            background: transparent;
+            border: none;
+            color: #ef4444;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .clear-btn:hover {
+            background: #fee2e2;
+        }
+
+        .clear-btn:disabled {
+            color: #cbd5e1;
+            cursor: not-allowed;
+            background: transparent;
+        }
+
+        .todo-list {
+            list-style: none;
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .todo-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .todo-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .todo-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .todo-list::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .todo-item:hover {
+            border-color: #93c5fd;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+        }
+
+        .todo-item.completed {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        /* 四象限优先级:左边框标识 */
+        .todo-item[data-priority="urgent-important"] {
+            border-left: 4px solid #ef4444;
+            padding-left: 13px;
+        }
+        .todo-item[data-priority="important-not-urgent"] {
+            border-left: 4px solid #f59e0b;
+            padding-left: 13px;
+        }
+        .todo-item[data-priority="urgent-not-important"] {
+            border-left: 4px solid #3b82f6;
+            padding-left: 13px;
+        }
+        .todo-item[data-priority="not-urgent-not-important"] {
+            border-left: 4px solid #94a3b8;
+            padding-left: 13px;
+        }
+
+        /* 任务编辑态 */
+        .todo-text[contenteditable="true"] {
+            border: 1px solid #3b82f6;
+            border-radius: 6px;
+            padding: 4px 8px;
+            background: #ffffff;
+            cursor: text;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            text-decoration: none;
+            color: #1e293b;
+        }
+
+        .todo-item.completed .todo-text[contenteditable="true"] {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+
+        .todo-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: #3b82f6;
+            flex-shrink: 0;
+        }
+
+        .todo-text {
+            flex: 1;
+            min-width: 0;
+            font-size: 15px;
+            color: #1e293b;
+            word-break: normal;
+            overflow-wrap: anywhere;
+            line-height: 1.6;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: none;
+            color: #cbd5e1;
+            font-size: 18px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .delete-btn:hover {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state .icon {
+            font-size: 52px;
+            margin-bottom: 12px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* 视图切换 + Enter 快捷键提示 */
+        .add-btn kbd {
+            background: rgba(255, 255, 255, 0.22);
+            padding: 1px 7px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-family: inherit;
+            margin-left: 6px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .stats {
+            gap: 10px;
+        }
+
+        .stats-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: #f1f5f9;
+            padding: 3px;
+            border-radius: 10px;
+            gap: 2px;
+        }
+
+        .view-btn {
+            background: transparent;
+            border: none;
+            color: #64748b;
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+
+        .view-btn:hover {
+            color: #3b82f6;
+        }
+
+        .view-btn.active {
+            background: white;
+            color: #2563eb;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+
+        .view-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* 四象限矩阵视图 */
+        .matrix-view {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            min-height: 520px;
+        }
+
+        .matrix-view[hidden] {
+            display: none;
+        }
+
+        .quadrant {
+            background: #ffffff;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 320px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .quadrant::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .quadrant[data-priority="urgent-important"]::before { background: #ef4444; }
+        .quadrant[data-priority="important-not-urgent"]::before { background: #f59e0b; }
+        .quadrant[data-priority="urgent-not-important"]::before { background: #3b82f6; }
+        .quadrant[data-priority="not-urgent-not-important"]::before { background: #94a3b8; }
+
+        .quadrant:hover {
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        }
+
+        .quadrant[data-priority="important-not-urgent"] {
+            background: linear-gradient(135deg, #fffbeb 0%, #ffffff 80%);
+            border-color: #fde68a;
+        }
+        .quadrant[data-priority="urgent-important"] {
+            background: linear-gradient(135deg, #fef2f2 0%, #ffffff 80%);
+            border-color: #fecaca;
+        }
+        .quadrant[data-priority="not-urgent-not-important"] {
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 80%);
+            border-color: #e2e8f0;
+        }
+        .quadrant[data-priority="urgent-not-important"] {
+            background: linear-gradient(135deg, #eff6ff 0%, #ffffff 80%);
+            border-color: #bfdbfe;
+        }
+
+        .quadrant-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px dashed rgba(15, 23, 42, 0.1);
+        }
+
+        .quadrant-title {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .quadrant[data-priority="urgent-important"] .quadrant-title { color: #b91c1c; }
+        .quadrant[data-priority="important-not-urgent"] .quadrant-title { color: #b45309; }
+        .quadrant[data-priority="urgent-not-important"] .quadrant-title { color: #1d4ed8; }
+        .quadrant[data-priority="not-urgent-not-important"] .quadrant-title { color: #475569; }
+
+        .quadrant-count {
+            font-size: 12px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            color: #475569;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+
+        .quadrant-list {
+            list-style: none;
+            flex: 1;
+            overflow-y: auto;
+            max-height: 360px;
+            padding: 10px 14px 14px;
+            margin: 0;
+        }
+
+        .quadrant-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .quadrant-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        .matrix-task {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 14px;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+            animation: slideIn 0.25s ease-out;
+        }
+
+        .matrix-task:hover {
+            background: #ffffff;
+            border-color: rgba(15, 23, 42, 0.08);
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+        }
+
+        .matrix-task.completed {
+            opacity: 0.55;
+        }
+
+        .matrix-task.completed .task-text {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+
+        .matrix-task input[type="checkbox"] {
+            accent-color: #3b82f6;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .matrix-task .task-text {
+            flex: 1;
+            min-width: 0;
+            word-break: normal;
+            overflow-wrap: anywhere;
+            line-height: 1.5;
+            cursor: text;
+            color: #1e293b;
+        }
+
+        .matrix-task .delete-btn {
+            background: transparent;
+            border: none;
+            color: #cbd5e1;
+            font-size: 14px;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+
+        .matrix-task .delete-btn:hover {
+            color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .quadrant-empty {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+            padding: 32px 12px;
+            font-style: italic;
+        }
+
+        /* 优先级选择弹窗 */
+        .priority-picker-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .priority-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 14px 8px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: #ffffff;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+
+        .priority-option:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
+        }
+
+        .priority-option:active {
+            transform: translateY(0);
+        }
+
+        .priority-option .picker-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .priority-option[data-priority="urgent-important"] .picker-dot { background: #ef4444; }
+        .priority-option[data-priority="important-not-urgent"] .picker-dot { background: #f59e0b; }
+        .priority-option[data-priority="urgent-not-important"] .picker-dot { background: #3b82f6; }
+        .priority-option[data-priority="not-urgent-not-important"] .picker-dot { background: #94a3b8; }
+
+        .priority-option .picker-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .priority-option .picker-hint {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        /* 截止时间输入按钮 */
+        .due-btn {
+            background: transparent;
+            border: 2px solid #e0f2fe;
+            color: #64748b;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 18px;
+            padding: 0;
+            flex-shrink: 0;
+        }
+
+        .due-btn:hover {
+            border-color: #60a5fa;
+            color: #3b82f6;
+            background: #f8fafc;
+        }
+
+        .due-btn.has-due {
+            border-color: #fbbf24;
+            color: #b45309;
+            background: #fffbeb;
+        }
+
+        /* 截止时间弹窗表单 */
+        .due-form {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            font-size: 12px;
+            color: #475569;
+            font-weight: 500;
+            margin-top: 6px;
+        }
+
+        .form-label:first-child { margin-top: 0; }
+
+        .form-input {
+            padding: 9px 12px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #1e293b;
+            background: #f8fafc;
+            outline: none;
+            transition: all 0.15s ease;
+        }
+
+        .form-input:focus {
+            border-color: #3b82f6;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+
+        /* 任务项内容容器(放下方截止信息) */
+        .todo-content, .matrix-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        /* 截止信息标签 */
+        .due-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .due-tag, .remind-tag, .overdue-tag, .notified-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: rgba(148, 163, 184, 0.12);
+            white-space: nowrap;
+        }
+
+        .due-info.soon .due-tag {
+            background: rgba(245, 158, 11, 0.15);
+            color: #b45309;
+            font-weight: 500;
+        }
+
+        .due-info.overdue .due-tag {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .remind-tag {
+            background: rgba(59, 130, 246, 0.12);
+            color: #1d4ed8;
+        }
+
+        .overdue-tag {
+            background: #fef2f2;
+            color: #b91c1c;
+            font-weight: 600;
+            border: 1px solid #fecaca;
+        }
+
+        .notified-tag {
+            background: rgba(16, 185, 129, 0.12);
+            color: #047857;
+        }
+
+        /* 任务项右侧修改截止按钮 */
+        .task-due-btn {
+            background: transparent;
+            border: none;
+            color: #cbd5e1;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+            padding: 0;
+        }
+
+        .task-due-btn:hover {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .task-due-btn.has-due {
+            color: #f59e0b;
+        }
+
+        .task-due-btn.has-due:hover {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* 任务项右侧修改优先级按钮 */
+        .task-priority-btn {
+            background: transparent;
+            border: none;
+            color: #cbd5e1;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+            padding: 0;
+        }
+
+        .task-priority-btn:hover {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .task-priority-btn.has-priority {
+            color: #3b82f6;
+        }
+
+        .task-priority-btn.has-priority:hover {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        /* 任务项排序按钮(↑↓) */
+        .task-sort-btn {
+            background: transparent;
+            border: none;
+            color: #cbd5e1;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+            padding: 0;
+        }
+
+        .task-sort-btn:hover {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .task-sort-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background: transparent;
+            color: #cbd5e1;
+        }
+
+        /* 拖拽相关样式已回退 */
+
+        /* 自定义确认弹窗 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-overlay[hidden] {
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.92) translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-dialog {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 360px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            animation: popIn 0.2s ease;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .modal-message {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            word-break: break-word;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: none;
+            font-family: inherit;
+        }
+
+        .modal-btn-cancel {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #e2e8f0;
+        }
+
+        .modal-btn-confirm {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .modal-btn-confirm:hover {
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .modal-btn-confirm.danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .modal-btn-confirm.danger:hover {
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        /* 中屏:容器收一点内边距,矩阵仍 2x2 */
+        @media (max-width: 900px) {
+            .container {
+                padding: 28px 28px;
+            }
+
+            .matrix-view {
+                gap: 14px;
+            }
+
+            .quadrant {
+                min-height: 280px;
+            }
+        }
+
+        /* 手机:矩阵单列,内边距紧凑 */
+        @media (max-width: 600px) {
+            body {
+                padding: 16px 12px;
+            }
+
+            .container {
+                padding: 20px;
+                border-radius: 16px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .input-area {
+                flex-wrap: wrap;
+            }
+
+            .input-area input {
+                width: 100%;
+                flex: 0 0 100%;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+
+            .stats .count {
+                justify-content: space-around;
+            }
+
+            .clear-btn {
+                text-align: center;
+            }
+
+            .todo-item {
+                padding: 12px;
+            }
+
+            .stats {
+                flex-wrap: wrap;
+            }
+
+            .stats-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .matrix-view {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                min-height: auto;
+            }
+
+            .quadrant {
+                min-height: 160px;
+            }
+
+            .priority-picker-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="icon-wiggle">📋</span> 我的待办清单</h1>
+            <p>📜 凡事预则立</p>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="todoInput" placeholder="今天要做什么?输入后按 Enter 添加" maxlength="200" autocomplete="off">
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">全部</button>
+            <button class="filter-btn" data-filter="pending">未完成</button>
+            <button class="filter-btn" data-filter="completed">已完成</button>
+        </div>
+
+        <div class="stats">
+            <div class="count">
+                <span class="stat-item pending">
+                    未完成 <span class="badge" id="pendingCount">0</span>
+                </span>
+                <span class="stat-item completed">
+                    已完成 <span class="badge" id="completedCount">0</span>
+                </span>
+            </div>
+            <div class="stats-actions">
+                <button class="clear-btn" id="clearBtn" disabled>清空已完成</button>
+                <div class="view-toggle" id="viewToggle" role="group" aria-label="视图切换">
+                    <button class="view-btn active" data-view="list" type="button" title="列表视图" aria-label="列表视图">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <circle cx="4" cy="6" r="1" fill="currentColor"></circle>
+                            <circle cx="4" cy="12" r="1" fill="currentColor"></circle>
+                            <circle cx="4" cy="18" r="1" fill="currentColor"></circle>
+                        </svg>
+                    </button>
+                    <button class="view-btn" data-view="matrix" type="button" title="四象限视图" aria-label="四象限视图">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="12" y1="3" x2="12" y2="21"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <ul class="todo-list" id="todoList"></ul>
+
+        <div class="matrix-view" id="matrixView" hidden>
+            <div class="quadrant" data-priority="important-not-urgent">
+                <div class="quadrant-header">
+                    <span class="quadrant-title">重要 · 不紧急</span>
+                    <span class="quadrant-count" data-count="important-not-urgent">0</span>
+                </div>
+                <ul class="quadrant-list" data-list="important-not-urgent"></ul>
+            </div>
+            <div class="quadrant" data-priority="urgent-important">
+                <div class="quadrant-header">
+                    <span class="quadrant-title">重要 · 紧急</span>
+                    <span class="quadrant-count" data-count="urgent-important">0</span>
+                </div>
+                <ul class="quadrant-list" data-list="urgent-important"></ul>
+            </div>
+            <div class="quadrant" data-priority="not-urgent-not-important">
+                <div class="quadrant-header">
+                    <span class="quadrant-title">不重要 · 不紧急</span>
+                    <span class="quadrant-count" data-count="not-urgent-not-important">0</span>
+                </div>
+                <ul class="quadrant-list" data-list="not-urgent-not-important"></ul>
+            </div>
+            <div class="quadrant" data-priority="urgent-not-important">
+                <div class="quadrant-header">
+                    <span class="quadrant-title">不重要 · 紧急</span>
+                    <span class="quadrant-count" data-count="urgent-not-important">0</span>
+                </div>
+                <ul class="quadrant-list" data-list="urgent-not-important"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义确认弹窗 -->
+    <div class="modal-overlay" id="confirmModal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-dialog">
+            <h3 class="modal-title" id="modalTitle">确认操作</h3>
+            <p class="modal-message" id="modalMessage"></p>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="modalCancel" type="button">取消</button>
+                <button class="modal-btn modal-btn-confirm" id="modalConfirm" type="button">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 优先级选择弹窗 -->
+    <div class="modal-overlay" id="priorityPickerModal" hidden role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+        <div class="modal-dialog">
+            <h3 class="modal-title" id="pickerTitle">先给任务定个优先级吧</h3>
+            <p class="modal-message">用四象限法判断一下,这件任务属于哪一类?</p>
+            <div class="priority-picker-grid">
+                <button class="priority-option" data-priority="urgent-important" type="button">
+                    <span class="picker-dot"></span>
+                    <span class="picker-label">重要 · 紧急</span>
+                    <span class="picker-hint">立刻做</span>
+                </button>
+                <button class="priority-option" data-priority="important-not-urgent" type="button">
+                    <span class="picker-dot"></span>
+                    <span class="picker-label">重要 · 不紧急</span>
+                    <span class="picker-hint">计划做</span>
+                </button>
+                <button class="priority-option" data-priority="urgent-not-important" type="button">
+                    <span class="picker-dot"></span>
+                    <span class="picker-label">紧急 · 不重要</span>
+                    <span class="picker-hint">尽快做</span>
+                </button>
+                <button class="priority-option" data-priority="not-urgent-not-important" type="button">
+                    <span class="picker-dot"></span>
+                    <span class="picker-label">不重要 · 不紧急</span>
+                    <span class="picker-hint">可不做</span>
+                </button>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="pickerCancel" type="button">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 截止时间与提醒弹窗 -->
+    <div class="modal-overlay" id="duePickerModal" hidden role="dialog" aria-modal="true" aria-labelledby="duePickerTitle">
+        <div class="modal-dialog">
+            <h3 class="modal-title" id="duePickerTitle">设置截止与提醒</h3>
+            <div class="due-form">
+                <label class="form-label" for="dueTimeInput">截止时间</label>
+                <input type="datetime-local" id="dueTimeInput" class="form-input">
+                <label class="form-label" for="remindSelect">提前提醒</label>
+                <select id="remindSelect" class="form-input">
+                    <option value="0">不提醒</option>
+                    <option value="5">提前 5 分钟</option>
+                    <option value="15">提前 15 分钟</option>
+                    <option value="30" selected>提前 30 分钟</option>
+                    <option value="60">提前 1 小时</option>
+                    <option value="120">提前 2 小时</option>
+                    <option value="1440">提前 1 天</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="duePickerClear" type="button">清除</button>
+                <button class="modal-btn modal-btn-cancel" id="duePickerCancel" type="button">取消</button>
+                <button class="modal-btn modal-btn-confirm" id="duePickerConfirm" type="button">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'todoListData';
+        let todos = [];
+        let currentFilter = 'all';
+        let currentView = 'list';
+        let selectedPriority = '';
+        let pendingDueTime = null;        // 当前正在编辑的截止时间(添加/修改时)
+        let pendingRemindBefore = 0;      // 当前正在编辑的提醒设置
+        let editingDueTaskId = null;      // null=为新任务编辑,非null=为已有任务修改
+        const reminderTimers = new Map(); // taskId -> setTimeout id
+
+        // 初始化
+        function init() {
+            loadFromStorage();
+            bindEvents();
+            updateDueBtnState();
+            render();
+            scheduleReminders();
+        }
+
+        // 从 localStorage 读取
+        function loadFromStorage() {
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                todos = data ? JSON.parse(data) : [];
+            } catch (e) {
+                console.error('读取本地数据失败:', e);
+                todos = [];
+            }
+        }
+
+        // 保存到 localStorage
+        function saveToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+            } catch (e) {
+                console.error('保存数据失败:', e);
+                alert('保存失败,可能是浏览器存储已满或处于无痕模式');
+            }
+        }
+
+        // 添加任务
+        function addTodo() {
+            const input = document.getElementById('todoInput');
+            const text = input.value.trim();
+            if (!text) {
+                input.focus();
+                return;
+            }
+
+            // 没选优先级 → 弹窗引导,选完直接创建
+            if (!selectedPriority) {
+                input.blur();
+                showPriorityPicker({
+                    onPicked: () => {
+                        // 优先级已设置,如果已经设过截止时间(主动点过 📅),直接提交;否则询问是否设置
+                        if (pendingDueTime) {
+                            commitAddTodo();
+                            return;
+                        }
+                        showConfirm({
+                            title: '设置截止时间?',
+                            message: '要不要为这个任务设置截止时间与提醒?',
+                            confirmText: '设置',
+                            cancelText: '跳过'
+                        }, () => {
+                            // "设置" → 弹出截止时间弹窗,保存时自动 commitAddTodo
+                            showDuePicker(null, { commitOnSave: true });
+                        }, () => {
+                            // "跳过" → 直接创建任务
+                            commitAddTodo();
+                        });
+                    }
+                });
+                return;
+            }
+
+            commitAddTodo();
+        }
+
+        // 实际写入任务(被 addTodo 和弹窗选中后调用)
+        function commitAddTodo() {
+            const input = document.getElementById('todoInput');
+            const text = input.value.trim();
+            if (!text) {
+                input.focus();
+                return;
+            }
+
+            todos.unshift({
+                id: Date.now() + Math.random().toString(36).slice(2, 8),
+                text: text,
+                completed: false,
+                priority: selectedPriority || null,
+                dueTime: pendingDueTime,
+                remindBefore: pendingRemindBefore,
+                notified: false,
+                createdAt: Date.now()
+            });
+
+            input.value = '';
+            setSelectedPriority('');
+            pendingDueTime = null;
+            pendingRemindBefore = 0;
+            updateDueBtnState();
+            saveAndRender();
+            scheduleReminders();
+            input.focus();
+        }
+
+        // 切换完成状态
+        function toggleTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                saveAndRender();
+            }
+        }
+
+        // 删除任务
+        function deleteTodo(id) {
+            showConfirm({
+                title: '删除任务',
+                message: '确定要删除这条任务吗?此操作不可撤销。',
+                confirmText: '删除',
+                danger: true
+            }, () => {
+                todos = todos.filter(t => t.id !== id);
+                saveAndRender();
+            });
+        }
+
+        // 清空已完成
+        function clearCompleted() {
+            const completedItems = todos.filter(t => t.completed);
+            if (completedItems.length === 0) return;
+            showConfirm({
+                title: '清空已完成',
+                message: `确定要清空全部 ${completedItems.length} 条已完成任务吗?此操作不可撤销。`,
+                confirmText: '清空',
+                danger: true
+            }, () => {
+                todos = todos.filter(t => !t.completed);
+                saveAndRender();
+            });
+        }
+
+        // 自定义确认弹窗(替代 confirm(),避免被某些浏览器/环境拦截)
+        function showConfirm(options, onConfirm, onCancel) {
+            const { title = '确认操作', message = '确定要执行此操作吗?', confirmText = '确定', cancelText = '取消', danger = false } = options;
+
+            const modal = document.getElementById('confirmModal');
+            const titleEl = document.getElementById('modalTitle');
+            const msgEl = document.getElementById('modalMessage');
+            const confirmBtn = document.getElementById('modalConfirm');
+            const cancelBtn = document.getElementById('modalCancel');
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            confirmBtn.textContent = confirmText;
+            confirmBtn.classList.toggle('danger', !!danger);
+            cancelBtn.textContent = cancelText;
+
+            modal.hidden = false;
+
+            // 重新克隆按钮以清掉旧监听器
+            const newConfirm = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+            const newCancel = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+            const close = () => {
+                modal.hidden = true;
+                document.removeEventListener('keydown', onKey);
+                modal.removeEventListener('click', onOverlay);
+            };
+
+            const onKey = (e) => {
+                if (e.key === 'Escape') close();
+            };
+
+            const onOverlay = (e) => {
+                if (e.target === modal) close();
+            };
+
+            newConfirm.addEventListener('click', () => {
+                close();
+                onConfirm && onConfirm();
+            });
+
+            newCancel.addEventListener('click', () => {
+                close();
+                onCancel && onCancel();
+            });
+
+            document.addEventListener('keydown', onKey);
+            modal.addEventListener('click', onOverlay);
+
+            setTimeout(() => newCancel.focus(), 50);
+        }
+
+        // 优先级选择弹窗
+        // 用法 1(添加): showPriorityPicker({ onPicked: p => {...} })
+        // 用法 2(修改已有任务): showPriorityPicker({ editTaskId: 'xxx' }),选中后改 todo.priority 并 saveAndRender
+        function showPriorityPicker(opts) {
+            const { onPicked, editTaskId = null } = opts || {};
+            const modal = document.getElementById('priorityPickerModal');
+            const cancelBtn = document.getElementById('pickerCancel');
+            const titleEl = document.getElementById('pickerTitle');
+            const messageEl = modal.querySelector('.modal-message');
+
+            // 标题文案根据模式切换
+            if (editTaskId) {
+                titleEl.textContent = '修改优先级';
+                if (messageEl) messageEl.textContent = '给这个任务重新分类到合适的象限。';
+            } else {
+                titleEl.textContent = '先给任务定个优先级吧';
+                if (messageEl) messageEl.textContent = '用四象限法判断一下,这件任务属于哪一类?';
+            }
+
+            modal.hidden = false;
+
+            const newCancel = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+            const close = () => {
+                modal.hidden = true;
+                document.removeEventListener('keydown', onKey);
+                modal.removeEventListener('click', onOverlay);
+            };
+
+            const onKey = (e) => {
+                if (e.key === 'Escape') close();
+            };
+
+            const onOverlay = (e) => {
+                if (e.target === modal) close();
+            };
+
+            modal.querySelectorAll('.priority-option').forEach(btn => {
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                newBtn.addEventListener('click', () => {
+                    const p = newBtn.dataset.priority;
+                    close();
+                    if (editTaskId) {
+                        // 修改模式:直接改 todo
+                        const t = todos.find(x => x.id === editTaskId);
+                        if (t) {
+                            t.priority = p;
+                            t.notified = false;
+                            saveAndRender();
+                            scheduleReminders();
+                        }
+                    } else {
+                        // 添加模式:设 selectedPriority,回调让 addTodo 继续走"是否截止"流程
+                        setSelectedPriority(p);
+                        if (onPicked) onPicked(p);
+                    }
+                });
+            });
+
+            newCancel.addEventListener('click', close);
+
+            document.addEventListener('keydown', onKey);
+            modal.addEventListener('click', onOverlay);
+
+            setTimeout(() => {
+                const first = modal.querySelector('.priority-option');
+                if (first) first.focus();
+            }, 50);
+        }
+
+        // 截止时间与提醒弹窗
+        // taskId=null 表示为新任务设置;commitOnSave=true 表示"保存"按钮直接提交任务(从"是否设置截止"流程过来)
+        // commitOnSave=false(默认)表示"保存"按钮只设置 pendingDueTime/pendingRemindBefore(用户主动点 📅 按钮)
+        function showDuePicker(taskId = null, opts = {}) {
+            const { commitOnSave = false } = opts;
+            editingDueTaskId = taskId;
+            const modal = document.getElementById('duePickerModal');
+            const timeInput = document.getElementById('dueTimeInput');
+            const remindSelect = document.getElementById('remindSelect');
+            const cancelBtn = document.getElementById('duePickerCancel');
+            const confirmBtn = document.getElementById('duePickerConfirm');
+            const clearBtn = document.getElementById('duePickerClear');
+
+            // 填充当前值
+            let dueIso = null;
+            let remind = 30;
+            if (taskId) {
+                const t = todos.find(x => x.id === taskId);
+                if (t) {
+                    dueIso = t.dueTime;
+                    remind = t.remindBefore || 0;
+                }
+            } else {
+                dueIso = pendingDueTime;
+                remind = pendingRemindBefore || 30;
+            }
+            timeInput.value = dueIso ? toDateTimeLocalValue(dueIso) : '';
+            remindSelect.value = String(remind);
+
+            modal.hidden = false;
+
+            // 重新克隆按钮清旧监听
+            const newCancel = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+            const newConfirm = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+            const newClear = clearBtn.cloneNode(true);
+            clearBtn.parentNode.replaceChild(newClear, clearBtn);
+
+            const close = () => {
+                modal.hidden = true;
+                document.removeEventListener('keydown', onKey);
+                modal.removeEventListener('click', onOverlay);
+            };
+
+            const onKey = (e) => {
+                if (e.key === 'Escape') close();
+            };
+            const onOverlay = (e) => {
+                if (e.target === modal) close();
+            };
+
+            newConfirm.addEventListener('click', () => {
+                const v = timeInput.value;
+                const r = parseInt(remindSelect.value, 10) || 0;
+                if (!v) {
+                    // 没选时间,等同于清除
+                    if (taskId) {
+                        const t = todos.find(x => x.id === taskId);
+                        if (t) { t.dueTime = null; t.remindBefore = 0; t.notified = false; }
+                        saveAndRender();
+                        scheduleReminders();
+                    } else {
+                        pendingDueTime = null;
+                        pendingRemindBefore = 0;
+                        updateDueBtnState();
+                    }
+                } else {
+                    const iso = fromDateTimeLocalValue(v);
+                    if (taskId) {
+                        const t = todos.find(x => x.id === taskId);
+                        if (t) { t.dueTime = iso; t.remindBefore = r; t.notified = false; }
+                        saveAndRender();
+                        scheduleReminders();
+                    } else {
+                        pendingDueTime = iso;
+                        pendingRemindBefore = r;
+                        updateDueBtnState();
+                    }
+                    // 首次设置提醒时,尝试请求通知权限
+                    if (r > 0 && 'Notification' in window && Notification.permission === 'default') {
+                        try { Notification.requestPermission(); } catch (e) { /* ignore */ }
+                    }
+                }
+                close();
+                // taskId=null 场景 + commitOnSave=true:用户从"是否设置截止"流程过来,保存即创建任务
+                if (!taskId && commitOnSave) {
+                    commitAddTodo();
+                }
+            });
+
+            newClear.addEventListener('click', () => {
+                timeInput.value = '';
+                if (taskId) {
+                    const t = todos.find(x => x.id === taskId);
+                    if (t) { t.dueTime = null; t.remindBefore = 0; t.notified = false; }
+                    saveAndRender();
+                    scheduleReminders();
+                } else {
+                    pendingDueTime = null;
+                    pendingRemindBefore = 0;
+                    updateDueBtnState();
+                }
+                close();
+            });
+
+            newCancel.addEventListener('click', close);
+
+            document.addEventListener('keydown', onKey);
+            modal.addEventListener('click', onOverlay);
+
+            setTimeout(() => timeInput.focus(), 50);
+        }
+
+        // datetime-local input 用本地时区,需要 ISO 转换
+        function toDateTimeLocalValue(iso) {
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return '';
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+        function fromDateTimeLocalValue(v) {
+            // v 形如 "2026-07-20T14:00" 视为本地时间
+            const d = new Date(v);
+            return d.toISOString();
+        }
+
+        // ========== 提醒调度 ==========
+        function clearAllReminders() {
+            reminderTimers.forEach(id => clearTimeout(id));
+            reminderTimers.clear();
+        }
+
+        // 重新调度所有未完成任务的提醒
+        function scheduleReminders() {
+            clearAllReminders();
+            const now = Date.now();
+            todos.forEach(t => {
+                if (t.completed || !t.dueTime || !t.remindBefore) return;
+                const dueMs = new Date(t.dueTime).getTime();
+                if (isNaN(dueMs)) return;
+                const remindAt = dueMs - t.remindBefore * 60 * 1000;
+                if (remindAt <= now) {
+                    // 已经过了提醒时间
+                    if (dueMs > now && !t.notified) {
+                        // 还没到截止但错过了提醒时间(例如页面关了一阵),立即通知
+                        notify(t);
+                    }
+                } else {
+                    // 未来,定时
+                    const id = setTimeout(() => notify(t), remindAt - now);
+                    reminderTimers.set(t.id, id);
+                }
+            });
+        }
+
+        function notify(todo) {
+            todo.notified = true;
+            saveAndRender();
+            const dueStr = formatDueTime(todo.dueTime);
+            const body = `截止: ${dueStr}`;
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    new Notification(`⏰ ${todo.text}`, { body, tag: `todo-${todo.id}` });
+                } catch (e) { /* ignore */ }
+            }
+            // 兜底:页面内提示(不打扰,只是统计 notifed,UI 上显示"已提醒"标签)
+        }
+
+        // 保存并渲染
+        function saveAndRender() {
+            saveToStorage();
+            render();
+        }
+
+        // 渲染
+        function render() {
+            renderList();
+            renderMatrix();
+            renderStats();
+        }
+
+        // 渲染列表
+        function renderList() {
+            const list = document.getElementById('todoList');
+            const filtered = filterTodos();
+
+            if (filtered.length === 0) {
+                list.innerHTML = `
+                    <li class="empty-state">
+                        <div class="icon">${getEmptyIcon()}</div>
+                        <p>${getEmptyText()}</p>
+                    </li>
+                `;
+                return;
+            }
+
+            list.innerHTML = filtered.map((todo, idx) => `
+                <li class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}" data-priority="${todo.priority || ''}">
+                    <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} aria-label="标记完成">
+                    <div class="todo-content">
+                        <span class="todo-text">${escapeHtml(todo.text)}</span>
+                        ${renderDueInfo(todo)}
+                    </div>
+                    <button class="task-sort-btn" data-action="up" title="上移" type="button" aria-label="上移" ${idx === 0 ? 'disabled' : ''}>↑</button>
+                    <button class="task-sort-btn" data-action="down" title="下移" type="button" aria-label="下移" ${idx === filtered.length - 1 ? 'disabled' : ''}>↓</button>
+                    <button class="task-priority-btn ${todo.priority ? 'has-priority' : ''}" title="${todo.priority ? '修改优先级' : '设置优先级'}" type="button" aria-label="修改优先级">⚑</button>
+                    <button class="task-due-btn ${todo.dueTime ? 'has-due' : ''}" title="${todo.dueTime ? '修改截止时间' : '设置截止时间'}" type="button" aria-label="设置截止时间">📅</button>
+                    <button class="delete-btn" title="删除" aria-label="删除任务">✕</button>
+                </li>
+            `).join('');
+        }
+
+        // 过滤任务
+        function filterTodos() {
+            if (currentFilter === 'pending') return todos.filter(t => !t.completed);
+            if (currentFilter === 'completed') return todos.filter(t => t.completed);
+            return todos;
+        }
+
+        // 渲染统计
+        function renderStats() {
+            const completed = todos.filter(t => t.completed).length;
+            const pending = todos.length - completed;
+            document.getElementById('completedCount').textContent = completed;
+            document.getElementById('pendingCount').textContent = pending;
+
+            const clearBtn = document.getElementById('clearBtn');
+            clearBtn.disabled = completed === 0;
+        }
+
+        // 渲染四象限矩阵(同步应用列表的筛选:全部/未完成/已完成)
+        function renderMatrix() {
+            const order = ['important-not-urgent', 'urgent-important', 'not-urgent-not-important', 'urgent-not-important'];
+            const filtered = filterTodos();
+            order.forEach(p => {
+                const listEl = document.querySelector(`.quadrant-list[data-list="${p}"]`);
+                const countEl = document.querySelector(`.quadrant-count[data-count="${p}"]`);
+                if (!listEl || !countEl) return;
+
+                const items = filtered.filter(t => t.priority === p);
+                countEl.textContent = items.length;
+
+                if (items.length === 0) {
+                    listEl.innerHTML = `<li class="quadrant-empty">暂无任务</li>`;
+                } else {
+                    listEl.innerHTML = items.map((todo, idx) => `
+                        <li class="matrix-task ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
+                            <input type="checkbox" ${todo.completed ? 'checked' : ''} aria-label="标记完成">
+                            <div class="matrix-content">
+                                <span class="task-text">${escapeHtml(todo.text)}</span>
+                                ${renderDueInfo(todo, true)}
+                            </div>
+                            <button class="task-sort-btn" data-action="up" title="上移" type="button" aria-label="上移" ${idx === 0 ? 'disabled' : ''}>↑</button>
+                            <button class="task-sort-btn" data-action="down" title="下移" type="button" aria-label="下移" ${idx === items.length - 1 ? 'disabled' : ''}>↓</button>
+                            <button class="task-priority-btn ${todo.priority ? 'has-priority' : ''}" title="${todo.priority ? '修改优先级' : '设置优先级'}" type="button" aria-label="修改优先级">⚑</button>
+                            <button class="task-due-btn ${todo.dueTime ? 'has-due' : ''}" title="${todo.dueTime ? '修改截止时间' : '设置截止时间'}" type="button" aria-label="设置截止时间">📅</button>
+                            <button class="delete-btn" title="删除" type="button" aria-label="删除任务">✕</button>
+                        </li>
+                    `).join('');
+                }
+            });
+        }
+
+        // 切换视图
+        function setView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.view === view);
+            });
+            document.getElementById('todoList').hidden = view === 'matrix';
+            document.getElementById('matrixView').hidden = view === 'list';
+        }
+
+        // (拖拽相关函数已回退)
+
+        // 获取空状态图标
+        function getEmptyIcon() {
+            if (currentFilter === 'completed') return '🎉';
+            if (currentFilter === 'pending') return '✨';
+            return '📝';
+        }
+
+        // 在 filtered 列表中交换两个位置(idx 和 idx+dir)
+        // 因为 filtered 是 todos 的子集(按 filter 过滤),直接交换 todos 数组中的两个元素即可
+        function moveTodoInList(filteredTodos, idx, dir) {
+            const targetIdx = idx + dir;
+            if (targetIdx < 0 || targetIdx >= filteredTodos.length) return;
+            const aId = filteredTodos[idx].id;
+            const bId = filteredTodos[targetIdx].id;
+            const aPos = todos.findIndex(t => t.id === aId);
+            const bPos = todos.findIndex(t => t.id === bId);
+            if (aPos < 0 || bPos < 0) return;
+            [todos[aPos], todos[bPos]] = [todos[bPos], todos[aPos]];
+            saveAndRender();
+        }
+
+        // 获取空状态文字
+        function getEmptyText() {
+            if (currentFilter === 'completed') return '还没有已完成的任务';
+            if (currentFilter === 'pending') return '太棒了!所有任务都已完成';
+            return '还没有任务,添加一个吧';
+        }
+
+        // HTML 转义防止 XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 格式化截止时间为展示用(本地时区)
+        function formatDueTime(iso) {
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return '';
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        // 格式化提前提醒时长
+        function formatRemindBefore(mins) {
+            if (mins < 60) return `${mins} 分钟`;
+            if (mins < 1440) return `${mins / 60} 小时`;
+            return `${mins / 1440} 天`;
+        }
+
+        // 渲染任务项下方的截止/提醒信息
+        function renderDueInfo(todo, compact = false) {
+            if (!todo.dueTime) return '';
+            const due = new Date(todo.dueTime);
+            if (isNaN(due.getTime())) return '';
+            const now = new Date();
+            const diff = due - now;
+            const overdue = !todo.completed && diff < 0;
+            const soon = !todo.completed && !overdue && diff < 3600000; // 1 小时内
+            const cls = overdue ? 'overdue' : (soon ? 'soon' : '');
+
+            const dueStr = formatDueTime(todo.dueTime);
+            let html = `<div class="due-info ${cls}">`;
+            html += `<span class="due-tag" title="${escapeHtml(todo.dueTime)}">📅 ${escapeHtml(dueStr)}</span>`;
+            if (todo.remindBefore && todo.remindBefore > 0) {
+                html += `<span class="remind-tag">⏰ 提前 ${escapeHtml(formatRemindBefore(todo.remindBefore))}</span>`;
+            }
+            if (overdue) {
+                html += `<span class="overdue-tag">已逾期</span>`;
+            } else if (todo.notified) {
+                html += `<span class="notified-tag">已提醒</span>`;
+            }
+            html += `</div>`;
+            return html;
+        }
+
+        // 更新输入区 📅 按钮的视觉状态
+        function updateDueBtnState() {
+            const btn = document.getElementById('dueBtn');
+            if (!btn) return;
+            btn.classList.toggle('has-due', !!pendingDueTime);
+            btn.title = pendingDueTime ? `截止 ${formatDueTime(pendingDueTime)}` : '设置截止时间与提醒';
+        }
+
+        // 设置当前选中的优先级(空字符串 = 无;输入区无优先级按钮,弹窗里选中后调用)
+        function setSelectedPriority(p) {
+            selectedPriority = p;
+        }
+
+        // 启动编辑任务(直接接收 item 元素,避免 querySelector 在 hidden 的另一视图里命中)
+        function startEdit(item) {
+            if (!item) return;
+            const textEl = item.querySelector('.todo-text, .task-text');
+            if (!textEl || textEl.getAttribute('contenteditable') === 'true') return;
+            if (item.classList.contains('completed')) return; // 已完成不允许编辑
+
+            const id = item.dataset.id;
+            const original = textEl.textContent;
+            textEl.setAttribute('contenteditable', 'true');
+            textEl.focus();
+
+            // 选中全部文本
+            const range = document.createRange();
+            range.selectNodeContents(textEl);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+
+            const cleanup = () => {
+                textEl.removeEventListener('keydown', onKey);
+                textEl.removeEventListener('blur', onBlur);
+            };
+
+            const finish = (save) => {
+                cleanup();
+                textEl.setAttribute('contenteditable', 'false');
+                if (save) {
+                    const newText = textEl.textContent.trim();
+                    if (newText && newText !== original) {
+                        const todo = todos.find(t => t.id === id);
+                        if (todo) {
+                            todo.text = newText;
+                            saveAndRender();
+                            return;
+                        }
+                    } else if (!newText) {
+                        textEl.textContent = original;
+                    }
+                } else {
+                    textEl.textContent = original;
+                }
+            };
+
+            const onKey = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    finish(true);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    finish(false);
+                }
+            };
+
+            const onBlur = () => finish(true);
+
+            textEl.addEventListener('keydown', onKey);
+            textEl.addEventListener('blur', onBlur);
+        }
+
+        // 绑定事件
+        function bindEvents() {
+            // 回车添加任务(添加按钮已去掉,直接靠 Enter 键提交)
+            document.getElementById('todoInput').addEventListener('keydown', e => {
+                if (e.key === 'Enter') addTodo();
+            });
+
+            // 列表事件委托
+            document.getElementById('todoList').addEventListener('click', e => {
+                const item = e.target.closest('.todo-item');
+                if (!item) return;
+                const id = item.dataset.id;
+
+                if (e.target.closest('.task-due-btn')) {
+                    showDuePicker(id);
+                } else if (e.target.closest('.task-priority-btn')) {
+                    showPriorityPicker({ editTaskId: id });
+                } else if (e.target.closest('.task-sort-btn')) {
+                    const action = e.target.dataset.action;
+                    if (action === 'up' || action === 'down') {
+                        const listEl = document.getElementById('todoList');
+                        const items = [...listEl.querySelectorAll('.todo-item')];
+                        const idx = items.indexOf(item);
+                        moveTodoInList(items.map(el => todos.find(t => t.id === el.dataset.id)), idx, action === 'up' ? -1 : 1);
+                    }
+                } else if (e.target.classList.contains('todo-checkbox')) {
+                    toggleTodo(id);
+                } else if (e.target.closest('.delete-btn')) {
+                    deleteTodo(id);
+                }
+            });
+
+            // 双击任务文字进入编辑
+            document.getElementById('todoList').addEventListener('dblclick', e => {
+                const textEl = e.target.closest('.todo-text');
+                if (!textEl) return;
+                const item = textEl.closest('.todo-item');
+                if (!item) return;
+                startEdit(item);
+            });
+
+            // 视图切换
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setView(btn.dataset.view);
+                });
+            });
+
+            // 矩阵视图事件委托
+            document.getElementById('matrixView').addEventListener('click', e => {
+                const item = e.target.closest('.matrix-task');
+                if (!item) return;
+                const id = item.dataset.id;
+
+                if (e.target.closest('.task-due-btn')) {
+                    showDuePicker(id);
+                } else if (e.target.closest('.task-priority-btn')) {
+                    showPriorityPicker({ editTaskId: id });
+                } else if (e.target.closest('.task-sort-btn')) {
+                    const action = e.target.dataset.action;
+                    const listEl = e.target.closest('.quadrant-list');
+                    if (!listEl) return;
+                    const items = [...listEl.querySelectorAll('.matrix-task')];
+                    const idx = items.indexOf(item);
+                    moveTodoInList(items.map(el => todos.find(t => t.id === el.dataset.id)), idx, action === 'up' ? -1 : 1);
+                } else if (e.target.matches('input[type="checkbox"]')) {
+                    toggleTodo(id);
+                } else if (e.target.closest('.delete-btn')) {
+                    deleteTodo(id);
+                }
+            });
+
+            // 矩阵视图双击编辑
+            document.getElementById('matrixView').addEventListener('dblclick', e => {
+                const textEl = e.target.closest('.task-text');
+                if (!textEl) return;
+                const item = textEl.closest('.matrix-task');
+                if (!item) return;
+                startEdit(item);
+            });
+
+            // 筛选按钮
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    render();
+                });
+            });
+
+            // 清空已完成
+            document.getElementById('clearBtn').addEventListener('click', clearCompleted);
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>
