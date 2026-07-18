@@ -130,3 +130,103 @@ E:\Work Buddy Project\To Do list\
 └── .workbuddy/          # 内部工作数据(不进 Git)
     └── memory/          # 项目记忆
 ```
+
+## 6️⃣ 协作开发:不用 WorkBuddy 也能改
+
+**核心原则:Netlify 部署只看 GitHub 仓库的 main 分支,跟谁改、在哪改、用什么工具改完全无关。** 只要代码 push 到 `https://github.com/MU-uu/todo-list.git`,Netlify 30 秒内就自动部署。
+
+### 场景 A:在 WorkBuddy 本项目的新对话窗口改
+- 操作完全跟当前一样
+- AI 默认就在 `E:/Work Buddy Project\To Do list` 目录工作
+- 让 AI 改完直接帮你 commit + push 即可
+
+### 场景 B:在 WorkBuddy 别的项目里开窗口改这个项目
+- AI 默认会 cd 到它所在的项目目录,**不一定**是本项目目录
+- **关键**:在第一句明确告诉它"项目目录是 `E:/Work Buddy Project\To Do list`,所有操作在那里"
+- 或者:"先 `cd "E:/Work Buddy Project/To Do list"`,再帮我改 xxx"
+
+### 场景 C:完全不用 AI,手动改
+1. 用任何编辑器(记事本 / VS Code / Sublime Text)打开 `E:/Work Buddy Project\To Do list\index.html`
+2. 编辑保存
+3. 双击项目根目录的 **`deploy.bat`** 文件(我做了,见下) → 自动完成 git add + commit + push
+4. 等 30 秒,Netlify 自动部署
+
+### 场景 D:用其他 AI 工具(Cursor / Copilot / ChatGPT / Claude.ai 网页)
+1. 让 AI 给你**完整的代码**(不要让它直接改你的文件,因为它改的位置可能不在 `E:/Work Buddy Project\To Do list`)
+2. 手动复制粘贴到 `E:/Work Buddy Project\To Do list\index.html`(覆盖保存)
+3. 双击 **`deploy.bat`** → 自动 commit + push
+4. Netlify 自动部署
+
+### 场景 E:让别的 AI 直接改文件
+- Cursor / Copilot / Continue 等本地插件:把项目根目录作为"工作区"打开,直接说"帮我改 xxx"
+- 改完用 `deploy.bat` 一键推送
+- 不需要额外配置
+
+### 场景 F:你/同事在他人的电脑上改
+1. 把整个 `E:/Work Buddy Project\To Do list` 目录压缩成 zip,发给别人
+2. 别人解压后:**首次需要初始化 git 凭据**(见下方)
+3. 改完双击 `deploy.bat`(脚本里会自动检测 token 是否可用)
+
+## 🆕 7️⃣ 一键部署脚本
+
+为了避免每次都要敲 git 命令,项目根目录放了 3 个脚本,挑你平台用的:
+
+### Windows:deploy.bat
+- **用法**:改完 `index.html`,**双击 `deploy.bat`**
+- 会弹一个黑色 cmd 窗口,自动运行:
+  ```
+  git add .
+  git commit -m "..."
+  git push (用 gh token)
+  ```
+- 完成后窗口停留,你能看到成功/失败信息
+- 按任意键关闭窗口
+
+### Mac/Linux:deploy.sh
+- **用法**:终端 `bash deploy.sh` 或 `chmod +x deploy.sh && ./deploy.sh`
+
+### 任何平台:deploy.py(Python 跨平台)
+- **用法**:`python deploy.py`
+- 需要 Python 3.6+(Windows 一般有)
+
+## 🔐 8️⃣ 在新电脑上首次配置
+
+换电脑 / 同事协作 / 克隆仓库到新位置,首次要做:
+
+```bash
+# 1. 装好 git + GitHub CLI(gh)
+# Windows: winget install GitHub.cli
+# Mac: brew install gh
+# Linux: apt install gh
+
+# 2. 登录 GitHub(会打开浏览器)
+gh auth login
+# 选 HTTPS,选你的 GitHub 账号 MU-uu
+
+# 3. 克隆仓库
+git clone https://github.com/MU-uu/todo-list.git
+cd todo-list
+
+# 4. 复制文件到 E:/Work Buddy Project\To Do list(可选)
+# 或者直接在这个目录工作
+
+# 5. 测试部署脚本
+deploy.bat   # Windows
+# 或
+./deploy.sh  # Mac/Linux
+```
+
+之后所有推送都不用再输入凭据(gh 帮你管理)。
+
+## 📌 核心要点总结
+
+| 关键事实 | 说明 |
+|---|---|
+| Netlify 监听什么? | GitHub 仓库 `MU-uu/todo-list` 的 `main` 分支 |
+| 谁来 push? | **任何人**——你、同事、CI/CD、其他 AI |
+| push 一次部署一次? | 是,30 秒内自动重新部署 |
+| push 后 URL 变不变? | 不变,永远是 `https://mu-todo-list.netlify.app` |
+| 没 push 之前能看到吗? | 本地 `index.html` 直接看,或用 `python -m http.server` |
+| 别人改完 push 了我能知道吗? | GitHub 仓库 → Insights → Commit history 看提交 |
+
+**所以:你完全可以在任何地方、任何方式改代码,只要最后一步是 `git push` 到 GitHub,Netlify 就自动接管剩下所有事。**
